@@ -6,6 +6,7 @@
 
 class Graph {
 public:
+    Graph() : size(0), adjMatrix() {}
     Graph(int size);
     void addEdge(int u, int v);
     void removeEdge(int u, int v);

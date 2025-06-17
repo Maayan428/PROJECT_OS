@@ -76,43 +76,72 @@ void Server::parseRequest(const std::string& request, int& vertices, int& edges,
  * @param client_fd The client's socket descriptor.
  */
 void Server::handleClient(int client_fd) {
+    const char* welcomeMsg =
+        "Welcome to the Euler Graph Server!\n"
+        "----------------------------------\n"
+        "Please enter a request in the following format:\n"
+        "   <vertices> <edges> <random_seed>\n"
+        "Example: 6 10 42\n"
+        "- vertices: number of nodes in the graph (must be > 0)\n"
+        "- edges: number of edges (>= 0)\n"
+        "- random_seed: any integer for reproducibility\n"
+        "Type 'exit' or 'q' to quit.\n\n";
+
+    send(client_fd, welcomeMsg, strlen(welcomeMsg), 0);
+
     char buffer[BUFFER_SIZE];
-    memset(buffer, 0, BUFFER_SIZE);
 
-    int bytes_read = read(client_fd, buffer, BUFFER_SIZE - 1);
-    if (bytes_read <= 0) {
-        std::cerr << "Error reading from client.\n";
-        close(client_fd);
-        return;
-    }
+    while (true) {
+        memset(buffer, 0, BUFFER_SIZE);
+        int bytes_read = read(client_fd, buffer, BUFFER_SIZE - 1);
 
-    std::ostringstream response;
-    int vertices, edges, seed;
-
-    try {
-        parseRequest(buffer, vertices, edges, seed);
-
-        Graph g(vertices);
-        g.generateRandomUndirected(edges, seed);
-
-        response << "Generated Graph:\n";
-        g.printAdjacencyMatrix(response);
-
-        if (EulerCircle::isEulerian(g)) {
-            std::vector<int> circuit = EulerCircle::getEulerianCircuit(g);
-            response << "\nEulerian Circuit Found:\n";
-            for (int v : circuit) response << v << " ";
-            response << "\n";
-        } else {
-            response << "\nGraph is not Eulerian.\n";
+        if (bytes_read == 0) {
+            std::cout << "Client disconnected gracefully.\n";
+            break;
+        } else if (bytes_read < 0) {
+            std::cerr << "Client disconnected unexpectedly (error during read).\n";
+            break;
         }
-    } catch (const std::exception& ex) {
-        response << "Error: " << ex.what() << "\n";
+
+        std::string input(buffer);
+        input.erase(input.find_last_not_of(" \n\r\t") + 1); // Trim
+
+        if (input == "exit" || input == "q") {
+            std::cout << "Client requested exit.\n";
+            send(client_fd, "Goodbye!\n", 9, 0);
+            break;
+        }
+
+        std::ostringstream response;
+        int vertices, edges, seed;
+
+        try {
+            parseRequest(input, vertices, edges, seed);
+
+            Graph g(vertices);
+            g.generateRandomUndirected(edges, seed);
+
+            response << "Generated Graph:\n";
+            g.printAdjacencyMatrix(response);
+
+            if (EulerCircle::isEulerian(g)) {
+                std::vector<int> circuit = EulerCircle::getEulerianCircuit(g);
+                response << "\nEulerian Circuit Found:\n";
+                for (int v : circuit) response << v << " ";
+                response << "\n";
+            } else {
+                response << "\nGraph is not Eulerian.\n";
+            }
+        } catch (const std::exception& ex) {
+            response << "Error: " << ex.what() << "\n";
+        }
+
+        std::string out = response.str();
+        send(client_fd, out.c_str(), out.size(), 0);
     }
 
-    std::string out = response.str();
-    send(client_fd, out.c_str(), out.size(), 0);
     close(client_fd);
+    std::cout << "Closed connection with client.\n";
 }
 
 /**
