@@ -74,8 +74,19 @@ Graph AlgorithmServer::receiveGraph(int client_fd, int& num_vertices) {
         "Type 'exit' or 'q' to quit.\n\n> ");
 
     std::string input = receiveLine(client_fd);
-    if (input == "exit" || input == "q")
+    if (input == "exit") {
+        sendMessage(client_fd, "Goodbye! You have disconnected from the server.\n");
+        shutdown(client_fd, SHUT_RDWR);
+        close(client_fd);
+        std::cout << "[Server] Client disconnected.\n";
         throw std::runtime_error("Client exited");
+    } else if (input == "q") {
+        stop_flag = 1;
+        shutdown(client_fd, SHUT_RDWR);
+        close(client_fd);
+        std::cout << "[Server] Server shutdown requested by client.\n";
+        throw std::runtime_error("Shutdown requested");
+    }
 
     std::istringstream iss(input);
     int num_edges, seed;
@@ -103,11 +114,15 @@ Graph AlgorithmServer::receiveGraph(int client_fd, int& num_vertices) {
     return g;
 }
 
+/**
+ * @brief Prompts the client for the name of the algorithm to run.
+ * @param client_fd File descriptor of the client socket.
+ * @return The algorithm name as a string.
+ */
 std::string AlgorithmServer::receiveAlgorithmName(int client_fd) {
     sendMessage(client_fd,
         "\nNow enter the name of the algorithm you want to run (options: mst, hamilton, scc, maxclique):\n> ");
-    std::string input = receiveLine(client_fd);
-    return input;
+    return receiveLine(client_fd);
 }
 
 /**
@@ -120,24 +135,48 @@ void AlgorithmServer::handleClient(int client_fd) {
 
         while (!stop_flag) {
             int num_vertices = -1;
-        
             Graph g;
+
             try {
                 g = receiveGraph(client_fd, num_vertices);
             } catch (const std::exception& ex) {
-                if (std::string(ex.what()) == "Client exited")
-                    break;  // Client requested exit
-                throw;
+                if (std::string(ex.what()) == "Client exited" || std::string(ex.what()) == "Shutdown requested") {
+                    return;
+                } else {
+                    sendMessage(client_fd, std::string("Error: ") + ex.what() + "\n");
+                    continue;
+                }
             }
-        
-            std::string algo = receiveAlgorithmName(client_fd);
-            if (algo == "exit" || algo == "q")
-                break;
-        
-            auto strategy = AlgorithmFactory::create(algo);
+
+            std::string algo;
+            std::unique_ptr<StrategyAlgorithm> strategy;
+            while (true) {
+                algo = receiveAlgorithmName(client_fd);
+                if (algo == "exit") {
+                    sendMessage(client_fd, "Goodbye! You have disconnected from the server.\n");
+                    shutdown(client_fd, SHUT_RDWR);
+                    close(client_fd);
+                    std::cout << "[Server] Client disconnected.\n";
+                    return;
+                } else if (algo == "q") {
+                    stop_flag = 1;
+                    shutdown(client_fd, SHUT_RDWR);
+                    close(client_fd);
+                    std::cout << "[Server] Server shutdown requested by client.\n";
+                    return;
+                }
+
+                try {
+                    strategy = AlgorithmFactory::create(algo);
+                    break;
+                } catch (const std::exception& e) {
+                    sendMessage(client_fd, std::string("Error: Unknown algorithm: ") + algo + "\n");
+                }
+            }
+
             std::string result = strategy->run(g);
             sendMessage(client_fd, "\nResult:\n" + result + "\n");
-        
+
             sendMessage(client_fd,
                 "\nYou may enter a new graph and algorithm now, or type 'exit' to quit.\n");
         }
@@ -146,7 +185,9 @@ void AlgorithmServer::handleClient(int client_fd) {
         sendMessage(client_fd, std::string("Error: ") + ex.what() + "\n");
     }
 
+    shutdown(client_fd, SHUT_RDWR);
     close(client_fd);
+    std::cout << "[Server] Client disconnected.\n";
 }
 
 /**
