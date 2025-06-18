@@ -17,7 +17,7 @@ private:
     int port_;
 
     void handleClient(int client_fd);  // Logic for handling a single client
-    Graph receiveGraph(int client_fd, int& num_vertices); // Reads graph definition from client
+    Graph receiveGraph(int client_fd, int& num_vertices); // Reads graph from client
     std::string receiveAlgorithmName(int client_fd); // Reads algorithm name from client
     void sendMessage(int client_fd, const std::string& msg); // Sends message to client
 };
