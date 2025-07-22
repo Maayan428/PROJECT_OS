@@ -1,5 +1,5 @@
 #include "ThreadServer.hpp"
-#include "AlgorithmFactory.hpp"
+#include "../algorithms/AlgorithmFactory.hpp"
 #include <arpa/inet.h>
 #include <netinet/in.h>
 #include <sys/socket.h>
@@ -14,35 +14,26 @@
 #include <set>
 #include <thread>
 #include <csignal>
+#include <mutex>
+#include <atomic>
 
 #define BUFFER_SIZE 2048
 
-volatile sig_atomic_t stop_flag = 0;
+std::atomic<bool> stop_flag = false;
+std::mutex client_counter_mutex;
+std::mutex cout_mutex; // lock for console output
+int client_counter = 0;
 
 void signal_handler(int signum) {
-    stop_flag = 1;
+    stop_flag.store(true, std::memory_order_seq_cst);
 }
 
-/**
- * @brief Constructs the multithreaded server with a specified port.
- * @param port Port number the server should listen on.
- */
 ThreadServer::ThreadServer(int port) : port_(port) {}
 
-/**
- * @brief Sends a message to the client.
- * @param client_fd File descriptor of the client socket.
- * @param msg The message to send.
- */
 void ThreadServer::sendMessage(int client_fd, const std::string& msg) {
     send(client_fd, msg.c_str(), msg.size(), 0);
 }
 
-/**
- * @brief Receives a single line of text from the client.
- * @param client_fd File descriptor of the client socket.
- * @return The received line as a string.
- */
 std::string ThreadServer::receiveLine(int client_fd) {
     std::string input;
     char ch;
@@ -54,73 +45,91 @@ std::string ThreadServer::receiveLine(int client_fd) {
         input += ch;
     }
 
-    // Trim trailing whitespace
     input.erase(input.find_last_not_of(" \r\t") + 1);
     return input;
 }
 
-/**
- * @brief Receives graph parameters from client and builds a random graph.
- * @param client_fd File descriptor of the client socket.
- * @param num_vertices Output number of vertices.
- * @return The generated Graph object.
- * @throws std::runtime_error if input is invalid or on disconnect.
- */
-Graph ThreadServer::receiveGraph(int client_fd, int& num_vertices) {
-    sendMessage(client_fd,
-        "Welcome to the Multithreaded Algorithm Server!\n"
-        "----------------------------------------------\n"
-        "Please enter a request in the following format:\n"
-        "   <vertices> <edges> <random_seed>\n"
-        "Example: 6 10 42\n"
-        "- vertices: number of nodes (> 0)\n"
-        "- edges: number of edges (>= 0)\n"
-        "- random_seed: integer for reproducibility\n"
-        "Type 'exit' or 'q' to quit.\n\n> ");
+Graph ThreadServer::receiveGraph(int client_fd, int& num_vertices, int client_id) {
+    while (true) {
+        sendMessage(client_fd,
+            "Welcome to the Multithreaded Algorithm Server!\n"
+            "----------------------------------------------\n"
+            "Please enter a request in the following format:\n"
+            "   <vertices> <edges> <random_seed>\n"
+            "Example: 6 10 42\n"
+            "- vertices: number of nodes (> 0)\n"
+            "- edges: number of edges (>= 0)\n"
+            "- random_seed: integer for reproducibility\n"
+            "Type 'exit' or 'q' to quit.\n\n> ");
 
-    std::string input = receiveLine(client_fd);
-    if (input == "exit" || input == "q") {
-        sendMessage(client_fd, "Goodbye! Disconnecting...\n");
-        shutdown(client_fd, SHUT_RDWR);
-        close(client_fd);
-        std::cout << "[Thread] Client disconnected or requested shutdown.\n";
-        throw std::runtime_error("Client exited");
-    }
+        std::string input = receiveLine(client_fd);
+        if (input == "exit") {
+            sendMessage(client_fd, "Goodbye! Disconnecting...\n");
+            {
+                std::lock_guard<std::mutex> lock(cout_mutex);
+                std::cout << "[Client " << client_id << "] Disconnected by request.\n";
+            }
+            throw std::runtime_error("Client exited");
+        } else if (input == "q") {
+            sendMessage(client_fd, "Shutdown signal received. Server will terminate...\n");
+            {
+                std::lock_guard<std::mutex> lock(cout_mutex);
+                std::cout << "[Client " << client_id << "] Requested server shutdown.\n";
+            }
+            stop_flag.store(true);
+            wakeUpServer(port_);
+            throw std::runtime_error("Shutdown requested");
+        }
 
-    int num_edges, seed;
-    std::istringstream iss(input);
-    if (!(iss >> num_vertices >> num_edges >> seed) || num_vertices <= 0 || num_edges < 0)
-        throw std::runtime_error("Invalid input format. Expected: <vertices> <edges> <random_seed>");
+        int num_edges, seed;
+        std::istringstream iss(input);
+        if (!(iss >> num_vertices >> num_edges >> seed) || num_vertices <= 0 || num_edges < 0) {
+            sendMessage(client_fd, "Invalid input. Try again or type 'exit' to quit.\n\n");
+            continue;
+        }
 
-    Graph g(num_vertices);
-    std::mt19937 rng(seed);
-    std::uniform_int_distribution<int> dist(0, num_vertices - 1);
-    std::set<std::pair<int, int>> edge_set;
+        Graph g(num_vertices);
+        std::mt19937 rng(seed);
+        std::uniform_int_distribution<int> dist(0, num_vertices - 1);
+        std::set<std::pair<int, int>> edge_set;
 
-    while ((int)edge_set.size() < num_edges) {
-        int u = dist(rng);
-        int v = dist(rng);
-        if (u != v) {
-            int a = std::min(u, v);
-            int b = std::max(u, v);
-            if (edge_set.insert({a, b}).second) {
-                g.addEdge(a, b);
+        while ((int)edge_set.size() < num_edges) {
+            int u = dist(rng);
+            int v = dist(rng);
+            if (u != v) {
+                int a = std::min(u, v);
+                int b = std::max(u, v);
+                if (edge_set.insert({a, b}).second) {
+                    g.addEdge(a, b);
+                }
             }
         }
-    }
 
-    sendMessage(client_fd, "Graph created successfully! Running algorithms...\n");
-    return g;
+        {
+            std::lock_guard<std::mutex> lock(cout_mutex);
+            std::cout << "[Client " << client_id << "] Graph received with " << num_vertices << " vertices and " << num_edges << " edges.\n";
+        }
+
+        sendMessage(client_fd, "Graph created successfully! Running algorithms...\n");
+        return g;
+    }
 }
 
-/**
- * @brief Handles a single client connection by running all algorithms and returning results.
- * @param client_fd File descriptor of the client socket.
- */
 void ThreadServer::handleClient(int client_fd) {
+    int client_id;
+    {
+        std::lock_guard<std::mutex> lock1(client_counter_mutex);
+        client_id = ++client_counter;
+    }
+
+    {
+        std::lock_guard<std::mutex> lock(cout_mutex);
+        std::cout << "[Client " << client_id << "] Connected.\n";
+    }
+
     try {
         int num_vertices = -1;
-        Graph g = receiveGraph(client_fd, num_vertices);
+        Graph g = receiveGraph(client_fd, num_vertices, client_id);
 
         std::vector<std::string> algos = {"mst", "hamilton", "scc", "maxclique"};
         for (const auto& algo : algos) {
@@ -129,21 +138,34 @@ void ThreadServer::handleClient(int client_fd) {
                 std::string result = strategy->run(g);
                 sendMessage(client_fd, "\n[" + algo + "] Result:\n" + result + "\n");
             } catch (const std::exception& e) {
+                if (std::string(e.what()) == "Shutdown requested") {
+                    std::lock_guard<std::mutex> lock(cout_mutex);
+                    std::cout << "[Client " << client_id << "] Shutdown request handled.\n";
+                }
                 sendMessage(client_fd, "Error running " + algo + ": " + e.what() + "\n");
             }
         }
 
         sendMessage(client_fd, "\nThank you! Connection will now close.\n");
+
+        {
+            std::lock_guard<std::mutex> lock(cout_mutex);
+            std::cout << "[Client " << client_id << "] Processing complete.\n";
+        }
+
     } catch (...) {
-        // Graceful disconnect
+        // Already handled above
     }
+
     shutdown(client_fd, SHUT_RDWR);
     close(client_fd);
+
+    {
+        std::lock_guard<std::mutex> lock(cout_mutex);
+        std::cout << "[Client " << client_id << "] Connection closed.\n";
+    }
 }
 
-/**
- * @brief Starts the multithreaded server and listens for client connections.
- */
 void ThreadServer::start() {
     signal(SIGINT, signal_handler);
 
@@ -168,9 +190,12 @@ void ThreadServer::start() {
         return;
     }
 
-    std::cout << "Multithreaded Algorithm Server listening on port " << port_ << "...\n";
+    {
+        std::lock_guard<std::mutex> lock(cout_mutex);
+        std::cout << "Multithreaded Algorithm Server listening on port " << port_ << "...\n";
+    }
 
-    while (!stop_flag) {
+    while (!stop_flag.load(std::memory_order_seq_cst)) {
         sockaddr_in client_addr;
         socklen_t client_len = sizeof(client_addr);
         int client_fd = accept(server_fd, (struct sockaddr*)&client_addr, &client_len);
@@ -180,10 +205,32 @@ void ThreadServer::start() {
             continue;
         }
 
+        if (stop_flag) {
+            close(client_fd);
+            break;
+        }
+
         std::thread t(&ThreadServer::handleClient, this, client_fd);
-        t.detach(); // Don't wait for the thread to complete
+        t.detach();
     }
 
     close(server_fd);
-    std::cout << "\nServer shut down gracefully.\n";
+
+    {
+        std::lock_guard<std::mutex> lock(cout_mutex);
+        std::cout << "\nServer shut down gracefully.\n";
+    }
+}
+
+void ThreadServer::wakeUpServer(int port) {
+    int dummy = socket(AF_INET, SOCK_STREAM, 0);
+    if (dummy < 0) return;
+
+    sockaddr_in server_addr{};
+    server_addr.sin_family = AF_INET;
+    server_addr.sin_port = htons(port);
+    server_addr.sin_addr.s_addr = inet_addr("127.0.0.1");
+
+    connect(dummy, (sockaddr*)&server_addr, sizeof(server_addr));
+    close(dummy);
 }

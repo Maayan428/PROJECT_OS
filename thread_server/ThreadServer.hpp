@@ -11,7 +11,7 @@ private:
     int port_;
     void sendMessage(int client_fd, const std::string& msg);
     std::string receiveLine(int client_fd);
-    Graph receiveGraph(int client_fd, int& num_vertices);
+    Graph receiveGraph(int client_fd, int& num_vertices, int client_id);
     void handleClient(int client_fd);
-
+    void wakeUpServer(int port);
 };

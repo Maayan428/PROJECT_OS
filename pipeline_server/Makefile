@@ -1,17 +1,10 @@
-# cd thread_server
-
-# make clean
-# make CXXFLAGS="-g -Wall -pthread"
-# valgrind --tool=helgrind ./thread_server
-
-# telnet localhost 9090
-
 CXX = g++
-CXXFLAGS = -std=c++17 -Wall -Wextra -I. -I../graphs -I../algorithms -g -fprofile-arcs -ftest-coverage
+CXXFLAGS = -std=c++17 -Wall -Wextra -pthread -I. -I../graphs -I../algorithms -g -fprofile-arcs -ftest-coverage
 LDFLAGS = -lgcov -lpthread
 
 SRC = main.cpp \
-      ThreadServer.cpp \
+      PipelineServer.cpp \
+      PipelineStage.cpp \
       ../algorithms/AlgorithmFactory.cpp \
       ../algorithms/MSTAlgorithm.cpp \
       ../algorithms/HamiltonAlgorithm.cpp \
@@ -21,7 +14,7 @@ SRC = main.cpp \
 
 OBJ = $(SRC:.cpp=.o)
 
-TARGET = thread_server
+TARGET = pipeline_server
 
 all: $(TARGET)
 
@@ -41,7 +34,7 @@ valgrind-callgrind: $(TARGET)
 	valgrind --tool=callgrind ./$(TARGET)
 
 coverage: clean $(TARGET)
-	@echo ">>> Run the threaded server and clients manually now."
+	@echo ">>> Run the pipeline server and clients manually now."
 	@echo ">>> Then run: make gcov-report"
 
 gcov-report:
