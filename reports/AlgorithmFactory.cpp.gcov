@@ -1,0 +1,105 @@
+        -:    0:Source:AlgorithmFactory.cpp
+        -:    1:#include "AlgorithmFactory.hpp"
+        -:    2:#include "../algorithms/MSTAlgorithm.hpp"
+        -:    3:#include "../algorithms/HamiltonAlgorithm.hpp"
+        -:    4:#include "../algorithms/SCCAlgorithm.hpp"
+        -:    5:#include "../algorithms/MaxCliqueAlgorithm.hpp"
+        -:    6:#include <algorithm>
+        -:    7:
+        -:    8:/**
+        -:    9: * @brief Creates an instance of a specific algorithm based on the given name.
+        -:   10: *
+        -:   11: * Supported algorithm names (case-insensitive):
+        -:   12: * - "mst"         : Minimum Spanning Tree algorithm
+        -:   13: * - "hamilton"    : Hamiltonian path/cycle algorithm
+        -:   14: * - "scc"         : Strongly Connected Components algorithm
+        -:   15: * - "maxclique" / "clique" : Maximum Clique algorithm
+        -:   16: *
+        -:   17: * @param name The name of the algorithm to create.
+        -:   18: * @return A unique_ptr to a StrategyAlgorithm implementation.
+        -:   19: * @throws std::invalid_argument if the algorithm name is not recognized.
+        -:   20: */
+function _ZN16AlgorithmFactory6createERKNSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEEE called 7 returned 86% blocks executed 83%
+        7:   21:std::unique_ptr<StrategyAlgorithm> AlgorithmFactory::create(const std::string& name) {
+        7:   22:    std::string lower_name = name;
+call    0 returned 7
+branch  1 taken 7 (fallthrough)
+branch  2 taken 0 (throw)
+        7:   23:    std::transform(lower_name.begin(), lower_name.end(), lower_name.begin(), ::tolower);
+call    0 returned 7
+call    1 returned 7
+call    2 returned 7
+call    3 returned 7
+        -:   24:
+        7:   25:    if (lower_name == "mst") {
+call    0 returned 7
+branch  1 taken 7 (fallthrough)
+branch  2 taken 0 (throw)
+branch  3 taken 2 (fallthrough)
+branch  4 taken 5
+        2:   26:        return std::make_unique<MSTAlgorithm>();
+call    0 returned 2
+branch  1 taken 2 (fallthrough)
+branch  2 taken 0 (throw)
+call    3 returned 2
+call    4 returned 2
+        5:   27:    } else if (lower_name == "hamilton") {
+call    0 returned 5
+branch  1 taken 5 (fallthrough)
+branch  2 taken 0 (throw)
+branch  3 taken 2 (fallthrough)
+branch  4 taken 3
+        2:   28:        return std::make_unique<HamiltonAlgorithm>();
+call    0 returned 2
+branch  1 taken 2 (fallthrough)
+branch  2 taken 0 (throw)
+call    3 returned 2
+call    4 returned 2
+        3:   29:    } else if (lower_name == "scc") {
+call    0 returned 3
+branch  1 taken 3 (fallthrough)
+branch  2 taken 0 (throw)
+branch  3 taken 1 (fallthrough)
+branch  4 taken 2
+        1:   30:        return std::make_unique<SCCAlgorithm>();
+call    0 returned 1
+branch  1 taken 1 (fallthrough)
+branch  2 taken 0 (throw)
+call    3 returned 1
+call    4 returned 1
+        2:   31:    } else if (lower_name == "maxclique" || lower_name == "clique") {
+call    0 returned 2
+branch  1 taken 2 (fallthrough)
+branch  2 taken 0 (throw)
+branch  3 taken 1 (fallthrough)
+branch  4 taken 1
+call    5 returned 1
+branch  6 taken 1 (fallthrough)
+branch  7 taken 0 (throw)
+branch  8 taken 0 (fallthrough)
+branch  9 taken 1
+branch 10 taken 1 (fallthrough)
+branch 11 taken 1
+        1:   32:        return std::make_unique<MaxCliqueAlgorithm>();
+call    0 returned 1
+branch  1 taken 1 (fallthrough)
+branch  2 taken 0 (throw)
+call    3 returned 1
+call    4 returned 1
+        -:   33:    }
+        -:   34:
+        1:   35:    throw std::invalid_argument("Unknown algorithm: " + name);
+call    0 returned 1
+call    1 returned 1
+branch  2 taken 1 (fallthrough)
+branch  3 taken 0 (throw)
+call    4 returned 1
+branch  5 taken 1 (fallthrough)
+branch  6 taken 0 (throw)
+call    7 returned 1
+call    8 returned 1
+call    9 never executed
+call   10 never executed
+        7:   36:}
+call    0 returned 6
+call    1 returned 1

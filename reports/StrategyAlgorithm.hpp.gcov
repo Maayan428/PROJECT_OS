@@ -1,0 +1,71 @@
+        -:    0:Source:StrategyAlgorithm.hpp
+        -:    1:#ifndef STRATEGY_ALGORITHM_HPP
+        -:    2:#define STRATEGY_ALGORITHM_HPP
+        -:    3:
+        -:    4:#include "../graphs/Graph.hpp"
+        -:    5:#include <string>
+        -:    6:
+        -:    7:/**
+        -:    8: * @brief Abstract base class for graph algorithms using the Strategy pattern.
+        -:    9: *
+        -:   10: * This interface allows different algorithm implementations (e.g., MST, SCC, Hamiltonian)
+        -:   11: * to be interchangeable at runtime. Each subclass must implement the `run()` method.
+        -:   12: */
+        -:   13:class StrategyAlgorithm {
+        -:   14:public:
+        -:   15:    /**
+        -:   16:     * @brief Runs the algorithm on the provided graph and returns the result as a string.
+        -:   17:     *
+        -:   18:     * @param graph The graph on which the algorithm will be executed.
+        -:   19:     * @return A string containing the result of the algorithm.
+        -:   20:     */
+        -:   21:    virtual std::string run(const Graph& graph) = 0;
+        -:   22:
+        -:   23:    /**
+        -:   24:     * @brief Virtual destructor to allow proper cleanup of derived classes.
+        -:   25:     */
+       6*:   26:    virtual ~StrategyAlgorithm() = default;
+------------------
+_ZN17StrategyAlgorithmD0Ev:
+function _ZN17StrategyAlgorithmD0Ev called 0 returned 0% blocks executed 0%
+    #####:   26:    virtual ~StrategyAlgorithm() = default;
+call    0 never executed
+call    1 never executed
+------------------
+_ZN17StrategyAlgorithmD2Ev:
+function _ZN17StrategyAlgorithmD2Ev called 6 returned 100% blocks executed 100%
+        6:   26:    virtual ~StrategyAlgorithm() = default;
+------------------
+_ZN17StrategyAlgorithmD0Ev:
+function _ZN17StrategyAlgorithmD0Ev called 0 returned 0% blocks executed 0%
+    #####:   26:    virtual ~StrategyAlgorithm() = default;
+call    0 never executed
+call    1 never executed
+------------------
+_ZN17StrategyAlgorithmD2Ev:
+function _ZN17StrategyAlgorithmD2Ev called 0 returned 0% blocks executed 0%
+    #####:   26:    virtual ~StrategyAlgorithm() = default;
+------------------
+_ZN17StrategyAlgorithmD0Ev:
+function _ZN17StrategyAlgorithmD0Ev called 0 returned 0% blocks executed 0%
+    #####:   26:    virtual ~StrategyAlgorithm() = default;
+call    0 never executed
+call    1 never executed
+------------------
+_ZN17StrategyAlgorithmD2Ev:
+function _ZN17StrategyAlgorithmD2Ev called 0 returned 0% blocks executed 0%
+    #####:   26:    virtual ~StrategyAlgorithm() = default;
+------------------
+_ZN17StrategyAlgorithmD0Ev:
+function _ZN17StrategyAlgorithmD0Ev called 0 returned 0% blocks executed 0%
+    #####:   26:    virtual ~StrategyAlgorithm() = default;
+call    0 never executed
+call    1 never executed
+------------------
+_ZN17StrategyAlgorithmD2Ev:
+function _ZN17StrategyAlgorithmD2Ev called 0 returned 0% blocks executed 0%
+    #####:   26:    virtual ~StrategyAlgorithm() = default;
+------------------
+        -:   27:};
+        -:   28:
+        -:   29:#endif // STRATEGY_ALGORITHM_HPP
