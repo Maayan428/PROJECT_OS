@@ -1,6 +1,6 @@
 CXX = g++
 CXXFLAGS = -std=c++17 -Wall -Wextra
-SRC = main.cpp Server.cpp ../graphs/Graph.cpp ../graphs/EulerCircle.cpp
+SRC = main.cpp Server.cpp ../graphs/Graph.cpp graphs/EulerCircle.cpp
 TARGET = server
 
 # Build the server
@@ -38,7 +38,8 @@ coverage: clean
 
 # Cleanup
 clean:
-	rm -f $(TARGET) $(TARGET)_cov *.gcno *.gcda coverage.info callgrind.out.* gmon.out
-	rm -rf coverage-report
+	@echo "Cleaning up object and coverage files..."
+	@rm -vf *.o *.gcda *.gcno *.gcov $(TARGET) $(TARGET)_cov callgrind.out.* gmon.out coverage.info
+	@rm -rf coverage-report
 
 .PHONY: all clean run valgrind helgrind callgraph coverage

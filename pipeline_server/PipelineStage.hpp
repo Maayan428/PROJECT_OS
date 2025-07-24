@@ -9,19 +9,18 @@
 
 class PipelineStage {
 public:
-    using Task = std::function<void()>;
+    using Task = std::function<void()>;  
 
-    PipelineStage();
-    ~PipelineStage();
-
-    void submit(Task task);
+    PipelineStage();          // Constructor: starts the worker thread
+    ~PipelineStage();         // Destructor: stops the thread and cleans up
+    void submit(Task task);   // Submit a new task to the pipeline
 
 private:
-    std::queue<Task> tasks;
-    std::mutex mtx;
-    std::condition_variable cv;
-    std::thread worker;
-    std::atomic<bool> stop;
+    std::queue<Task> tasks;             // Queue to hold submitted tasks
+    std::mutex mtx;                     // Mutex to protect access to the task queue
+    std::condition_variable cv;         // Condition variable to notify the worker about new tasks
+    std::thread worker;                 // The worker thread that runs submitted tasks
+    std::atomic<bool> stop;             // Flag to indicate if the thread should stop
 
-    void run(); 
+    void run();                         // Main loop that runs tasks from the queue
 };

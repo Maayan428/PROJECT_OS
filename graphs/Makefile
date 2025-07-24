@@ -40,7 +40,8 @@ callgraph: $(TARGET)
 
 # === Cleanup ===
 clean:
-	rm -f $(TARGET) prog_cov prog_gprof gmon.out *.gcno *.gcda coverage.info
-	rm -rf coverage-report callgrind.out.* gprof_report.txt
-
+	@echo "Cleaning up object and coverage files..."
+	@rm -vf *.o *.gcda *.gcno *.gcov $(TARGET) $(TARGET)_cov callgrind.out.* gmon.out coverage.info
+	@rm -rf coverage-report
+	
 .PHONY: all clean coverage gprof valgrind callgraph

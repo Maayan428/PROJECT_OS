@@ -49,5 +49,4 @@ gcov-report:
 
 clean:
 	@echo "Cleaning up object and coverage files..."
-	@find .. -type f \( -name '*.o' -o -name '*.gcda' -o -name '*.gcno' -o -name '*.gcov' \) -exec rm -v {} \;
-	@rm -vf $(TARGET) callgrind.out.* gmon.out coverage.info
+	@rm -vf *.o *.gcda *.gcno *.gcov $(TARGET) callgrind.out.* gmon.out coverage.info

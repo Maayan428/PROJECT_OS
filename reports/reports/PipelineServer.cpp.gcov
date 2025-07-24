@@ -1,0 +1,520 @@
+        -:    0:Source:PipelineServer.cpp
+        -:    1:#include "PipelineServer.hpp"
+        -:    2:#include "../algorithms/AlgorithmFactory.hpp"
+        -:    3:#include <iostream>
+        -:    4:#include <string>
+        -:    5:#include <sstream>
+        -:    6:#include <set>
+        -:    7:#include <random>
+        -:    8:#include <thread>
+        -:    9:#include <chrono>
+        -:   10:#include <netinet/in.h>
+        -:   11:#include <unistd.h>
+        -:   12:#include <arpa/inet.h>
+        -:   13:#include "PipelineStage.hpp"
+        -:   14:
+function _ZN14PipelineServerC2Ei called 1 returned 100% blocks executed 100%
+        1:   15:PipelineServer::PipelineServer(int port)
+        1:   16:    : port_(port), stop_flag(false) {}
+call    0 returned 1
+        -:   17:
+function _ZN14PipelineServer11sendMessageEiRKNSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEEE called 19 returned 100% blocks executed 100%
+       19:   18:void PipelineServer::sendMessage(int fd, const std::string& msg) {
+       19:   19:    send(fd, msg.c_str(), msg.size(), 0);
+call    0 returned 19
+call    1 returned 19
+call    2 returned 19
+       19:   20:}
+        -:   21:
+function _ZN14PipelineServer11receiveLineB5cxx11Ei called 5 returned 100% blocks executed 88%
+        5:   22:std::string PipelineServer::receiveLine(int fd) {
+        5:   23:    std::string input;
+call    0 returned 5
+        -:   24:    char ch;
+       32:   25:    while (recv(fd, &ch, 1, 0) > 0 && ch != '\n') {
+call    0 returned 32
+branch  1 taken 32 (fallthrough)
+branch  2 taken 0 (throw)
+branch  3 taken 32 (fallthrough)
+branch  4 taken 0
+branch  5 taken 27 (fallthrough)
+branch  6 taken 5
+branch  7 taken 27
+branch  8 taken 5 (fallthrough)
+       27:   26:        input += ch;
+call    0 returned 27
+branch  1 taken 27 (fallthrough)
+branch  2 taken 0 (throw)
+        -:   27:    }
+       10:   28:    return input;
+    =====:   29:}
+call    0 never executed
+        -:   30:
+function _ZN14PipelineServer12receiveGraphEiRi called 3 returned 67% blocks executed 63%
+        3:   31:Graph PipelineServer::receiveGraph(int client_fd, int& num_vertices) {
+        -:   32:    while (true) {
+        5:   33:        sendMessage(client_fd,
+call    0 returned 5
+branch  1 taken 5 (fallthrough)
+branch  2 taken 0 (throw)
+call    3 returned 5
+branch  4 taken 5 (fallthrough)
+branch  5 taken 0 (throw)
+call    6 returned 5
+call    7 never executed
+        -:   34:            "Enter: <vertices> <edges> <seed>\n"
+        -:   35:            "(Type 'exit' to disconnect, 'q' to shutdown)\n> ");
+        -:   36:        
+        5:   37:        std::string line = receiveLine(client_fd);
+call    0 returned 5
+branch  1 taken 5 (fallthrough)
+branch  2 taken 0 (throw)
+        -:   38:
+        5:   39:        if (line == "exit") {
+call    0 returned 5
+branch  1 taken 5 (fallthrough)
+branch  2 taken 0 (throw)
+branch  3 taken 0 (fallthrough)
+branch  4 taken 5
+    #####:   40:            sendMessage(client_fd, "Goodbye! Disconnecting...\n");
+call    0 never executed
+branch  1 never executed (fallthrough)
+branch  2 never executed (throw)
+call    3 never executed
+branch  4 never executed (fallthrough)
+branch  5 never executed (throw)
+call    6 never executed
+call    7 never executed
+    #####:   41:            std::cout << "[Client] Disconnected by request." << std::endl;
+call    0 never executed
+branch  1 never executed (fallthrough)
+branch  2 never executed (throw)
+call    3 never executed
+branch  4 never executed (fallthrough)
+branch  5 never executed (throw)
+    #####:   42:            throw std::runtime_error("Client exited");
+call    0 never executed
+call    1 never executed
+branch  2 never executed (fallthrough)
+branch  3 never executed (throw)
+call    4 never executed
+call    5 never executed
+        -:   43:        }
+        -:   44:
+        5:   45:        if (line == "q") {
+call    0 returned 5
+branch  1 taken 5 (fallthrough)
+branch  2 taken 0 (throw)
+branch  3 taken 1 (fallthrough)
+branch  4 taken 4
+        1:   46:            sendMessage(client_fd, "Shutdown signal received. Server will terminate...\n");
+call    0 returned 1
+branch  1 taken 1 (fallthrough)
+branch  2 taken 0 (throw)
+call    3 returned 1
+branch  4 taken 1 (fallthrough)
+branch  5 taken 0 (throw)
+call    6 returned 1
+call    7 never executed
+        1:   47:            std::cout << "[Client] Requested server shutdown." << std::endl;
+call    0 returned 1
+branch  1 taken 1 (fallthrough)
+branch  2 taken 0 (throw)
+call    3 returned 1
+branch  4 taken 1 (fallthrough)
+branch  5 taken 0 (throw)
+        1:   48:            stop_flag.store(true);
+call    0 returned 1
+        1:   49:            wakeUpServer();
+call    0 returned 1
+branch  1 taken 1 (fallthrough)
+branch  2 taken 0 (throw)
+        1:   50:            throw std::runtime_error("Shutdown requested");
+call    0 returned 1
+call    1 returned 1
+branch  2 taken 1 (fallthrough)
+branch  3 taken 0 (throw)
+call    4 returned 1
+call    5 never executed
+        -:   51:        }
+        -:   52:
+        -:   53:        int edges, seed;
+        4:   54:        std::istringstream iss(line);
+call    0 returned 4
+branch  1 taken 4 (fallthrough)
+branch  2 taken 0 (throw)
+        4:   55:        if (!(iss >> num_vertices >> edges >> seed)) {
+call    0 returned 4
+branch  1 taken 4 (fallthrough)
+branch  2 taken 0 (throw)
+call    3 returned 4
+branch  4 taken 4 (fallthrough)
+branch  5 taken 0 (throw)
+call    6 returned 4
+branch  7 taken 4 (fallthrough)
+branch  8 taken 0 (throw)
+call    9 returned 4
+branch 10 taken 4 (fallthrough)
+branch 11 taken 0 (throw)
+branch 12 taken 2 (fallthrough)
+branch 13 taken 2
+        2:   56:            sendMessage(client_fd, "Invalid input. Please try again.\n");
+call    0 returned 2
+branch  1 taken 2 (fallthrough)
+branch  2 taken 0 (throw)
+call    3 returned 2
+branch  4 taken 2 (fallthrough)
+branch  5 taken 0 (throw)
+call    6 returned 2
+call    7 never executed
+        2:   57:            continue;
+        -:   58:        }
+        -:   59:
+        2:   60:        Graph g(num_vertices);
+call    0 returned 2
+branch  1 taken 2 (fallthrough)
+branch  2 taken 0 (throw)
+        2:   61:        std::mt19937 rng(seed);
+call    0 returned 2
+branch  1 taken 2 (fallthrough)
+branch  2 taken 0 (throw)
+        2:   62:        std::set<std::pair<int, int>> edge_set;
+call    0 returned 2
+        2:   63:        std::uniform_int_distribution<int> dist(0, num_vertices - 1);
+call    0 returned 2
+branch  1 taken 2 (fallthrough)
+branch  2 taken 0 (throw)
+        -:   64:
+       48:   65:        while ((int)edge_set.size() < edges) {
+call    0 returned 48
+branch  1 taken 46
+branch  2 taken 2 (fallthrough)
+       46:   66:            int u = dist(rng), v = dist(rng);
+call    0 returned 46
+branch  1 taken 46 (fallthrough)
+branch  2 taken 0 (throw)
+call    3 returned 46
+branch  4 taken 46 (fallthrough)
+branch  5 taken 0 (throw)
+       46:   67:            if (u != v && edge_set.emplace(std::min(u, v), std::max(u, v)).second)
+branch  0 taken 45 (fallthrough)
+branch  1 taken 1
+call    2 returned 45
+call    3 returned 45
+call    4 returned 45
+branch  5 taken 45 (fallthrough)
+branch  6 taken 0 (throw)
+branch  7 taken 42 (fallthrough)
+branch  8 taken 3
+branch  9 taken 42 (fallthrough)
+branch 10 taken 4
+       42:   68:                g.addEdge(u, v);
+call    0 returned 42
+branch  1 taken 42 (fallthrough)
+branch  2 taken 0 (throw)
+        -:   69:        }
+        -:   70:
+        2:   71:        std::cout << "[Client] Graph received: " << num_vertices << " vertices, " << edges << " edges." << std::endl;
+call    0 returned 2
+branch  1 taken 2 (fallthrough)
+branch  2 taken 0 (throw)
+call    3 returned 2
+branch  4 taken 2 (fallthrough)
+branch  5 taken 0 (throw)
+call    6 returned 2
+branch  7 taken 2 (fallthrough)
+branch  8 taken 0 (throw)
+call    9 returned 2
+branch 10 taken 2 (fallthrough)
+branch 11 taken 0 (throw)
+call   12 returned 2
+branch 13 taken 2 (fallthrough)
+branch 14 taken 0 (throw)
+call   15 returned 2
+branch 16 taken 2 (fallthrough)
+branch 17 taken 0 (throw)
+        4:   72:        return g;
+call    0 returned 2
+       11:   73:    }
+call    0 returned 2
+call    1 returned 2
+call    2 returned 4
+branch  3 taken 2 (fallthrough)
+branch  4 taken 2
+call    5 returned 4
+branch  6 taken 2 (fallthrough)
+branch  7 taken 2
+call    8 never executed
+call    9 never executed
+call   10 never executed
+call   11 returned 1
+        -:   74:}
+        -:   75:
+function _ZN14PipelineServer12handleClientEi called 1 returned 100% blocks executed 61%
+        1:   76:void PipelineServer::handleClient(int client_fd) {
+        -:   77:    try {
+        -:   78:        while (true) {
+        -:   79:            int num_vertices;
+        3:   80:            Graph g = receiveGraph(client_fd, num_vertices);
+call    0 returned 3
+branch  1 taken 2 (fallthrough)
+branch  2 taken 1 (throw)
+        -:   81:
+        4:   82:            std::vector<std::string> names = {"mst", "hamilton", "scc", "maxclique"};
+call    0 returned 2
+branch  1 taken 2 (fallthrough)
+branch  2 taken 0 (throw)
+        2:   83:            std::vector<std::unique_ptr<PipelineStage>> stages;
+call    0 returned 2
+       10:   84:            for (int i = 0; i < 4; ++i)
+branch  0 taken 8
+branch  1 taken 2 (fallthrough)
+        8:   85:                stages.push_back(std::make_unique<PipelineStage>());
+call    0 returned 8
+branch  1 taken 8 (fallthrough)
+branch  2 taken 0 (throw)
+call    3 returned 8
+branch  4 taken 8 (fallthrough)
+branch  5 taken 0 (throw)
+call    6 returned 8
+call    7 never executed
+        -:   86:
+       10:   87:            for (int i = 0; i < 4; ++i) {
+branch  0 taken 8
+branch  1 taken 2 (fallthrough)
+function _ZZN14PipelineServer12handleClientEiENKUlvE_clEv called 8 returned 100% blocks executed 37%
+        8:   88:                stages[i]->submit([&, i]() {
+call    0 returned 8
+call    1 returned 8
+call    2 returned 8
+branch  3 taken 8 (fallthrough)
+branch  4 taken 0 (throw)
+call    5 returned 8
+branch  6 taken 8 (fallthrough)
+branch  7 taken 0 (throw)
+call    8 returned 8
+call    9 never executed
+        -:   89:                    try {
+        8:   90:                        auto strategy = AlgorithmFactory::create(names[i]);
+call    0 returned 8
+call    1 returned 8
+branch  2 taken 8 (fallthrough)
+branch  3 taken 0 (throw)
+        8:   91:                        std::string result = strategy->run(g);
+call    0 returned 8
+call    1 returned 8
+branch  2 taken 8 (fallthrough)
+branch  3 taken 0 (throw)
+        8:   92:                        sendMessage(client_fd, "[" + names[i] + "] Result:\n" + result + "\n");
+call    0 returned 8
+call    1 returned 8
+branch  2 taken 8 (fallthrough)
+branch  3 taken 0 (throw)
+call    4 returned 8
+branch  5 taken 8 (fallthrough)
+branch  6 taken 0 (throw)
+call    7 returned 8
+branch  8 taken 8 (fallthrough)
+branch  9 taken 0 (throw)
+call   10 returned 8
+branch 11 taken 8 (fallthrough)
+branch 12 taken 0 (throw)
+call   13 returned 8
+branch 14 taken 8 (fallthrough)
+branch 15 taken 0 (throw)
+call   16 returned 8
+call   17 returned 8
+call   18 returned 8
+call   19 returned 8
+call   20 never executed
+call   21 never executed
+call   22 never executed
+call   23 never executed
+        8:   93:                    } catch (...) {
+call    0 returned 8
+call    1 returned 8
+call    2 never executed
+call    3 never executed
+call    4 never executed
+    =====:   94:                        sendMessage(client_fd, "[" + names[i] + "] Error.\n");
+call    0 never executed
+call    1 never executed
+branch  2 never executed (fallthrough)
+branch  3 never executed (throw)
+call    4 never executed
+branch  5 never executed (fallthrough)
+branch  6 never executed (throw)
+call    7 never executed
+branch  8 never executed (fallthrough)
+branch  9 never executed (throw)
+call   10 never executed
+call   11 never executed
+call   12 never executed
+call   13 never executed
+    =====:   95:                    }
+call    0 never executed
+call    1 never executed
+        8:   96:                });
+        -:   97:            }
+        -:   98:
+        2:   99:            std::this_thread::sleep_for(std::chrono::milliseconds(500));
+call    0 returned 2
+call    1 returned 2
+branch  2 taken 2 (fallthrough)
+branch  3 taken 0 (throw)
+        4:  100:            sendMessage(client_fd, "Finished all stages.\n\n");
+call    0 returned 2
+branch  1 taken 2 (fallthrough)
+branch  2 taken 0 (throw)
+call    3 returned 2
+branch  4 taken 2 (fallthrough)
+branch  5 taken 0 (throw)
+call    6 returned 2
+call    7 never executed
+        2:  101:        }
+call    0 returned 2
+call    1 returned 2
+call    2 returned 2
+call    3 never executed
+call    4 never executed
+call    5 never executed
+        1:  102:    } catch (const std::exception& e) {
+branch  0 taken 0 (fallthrough)
+branch  1 taken 1
+call    2 returned 1
+        1:  103:        std::cout << "[Client] Exception: " << e.what() << std::endl;
+call    0 returned 1
+branch  1 taken 1 (fallthrough)
+branch  2 taken 0 (throw)
+call    3 returned 1
+call    4 returned 1
+branch  5 taken 1 (fallthrough)
+branch  6 taken 0 (throw)
+call    7 returned 1
+branch  8 taken 1 (fallthrough)
+branch  9 taken 0 (throw)
+        2:  104:        sendMessage(client_fd, "Session ended.\n");
+call    0 returned 1
+branch  1 taken 1 (fallthrough)
+branch  2 taken 0 (throw)
+call    3 returned 1
+branch  4 taken 1 (fallthrough)
+branch  5 taken 0 (throw)
+call    6 returned 1
+call    7 never executed
+        1:  105:    }
+call    0 returned 1
+call    1 never executed
+        -:  106:
+        1:  107:    close(client_fd);
+call    0 returned 1
+        1:  108:    std::cout << "[Client] Connection closed.\n";
+call    0 returned 1
+        1:  109:}
+        -:  110:
+function _ZN14PipelineServer12wakeUpServerEv called 1 returned 100% blocks executed 100%
+        1:  111:void PipelineServer::wakeUpServer() {
+        1:  112:    int dummy = socket(AF_INET, SOCK_STREAM, 0);
+call    0 returned 1
+        1:  113:    sockaddr_in addr{};
+        1:  114:    addr.sin_family = AF_INET;
+        1:  115:    addr.sin_port = htons(port_);
+        1:  116:    addr.sin_addr.s_addr = inet_addr("127.0.0.1");
+call    0 returned 1
+        1:  117:    connect(dummy, (sockaddr*)&addr, sizeof(addr));
+call    0 returned 1
+branch  1 taken 1 (fallthrough)
+branch  2 taken 0 (throw)
+        1:  118:    close(dummy);
+call    0 returned 1
+branch  1 taken 1 (fallthrough)
+branch  2 taken 0 (throw)
+        1:  119:}
+        -:  120:
+function _ZN14PipelineServer5startEv called 1 returned 100% blocks executed 59%
+        1:  121:void PipelineServer::start() {
+        1:  122:    int server_fd = socket(AF_INET, SOCK_STREAM, 0);
+call    0 returned 1
+        1:  123:    sockaddr_in addr{};
+        1:  124:    addr.sin_family = AF_INET;
+        1:  125:    addr.sin_addr.s_addr = INADDR_ANY;
+        1:  126:    addr.sin_port = htons(port_);
+        -:  127:
+        1:  128:    if (bind(server_fd, (sockaddr*)&addr, sizeof(addr)) < 0) {
+call    0 returned 1
+branch  1 taken 0 (fallthrough)
+branch  2 taken 1
+    #####:  129:        perror("bind failed");
+call    0 never executed
+branch  1 never executed (fallthrough)
+branch  2 never executed (throw)
+    #####:  130:        return;
+        -:  131:    }
+        -:  132:
+        1:  133:    if (listen(server_fd, 10) < 0) {
+call    0 returned 1
+branch  1 taken 0 (fallthrough)
+branch  2 taken 1
+    #####:  134:        perror("listen failed");
+call    0 never executed
+branch  1 never executed (fallthrough)
+branch  2 never executed (throw)
+    #####:  135:        return;
+        -:  136:    }
+        -:  137:
+        1:  138:    std::cout << "Pipeline Server listening on port " << port_ << "...\n";
+call    0 returned 1
+branch  1 taken 1 (fallthrough)
+branch  2 taken 0 (throw)
+call    3 returned 1
+branch  4 taken 1 (fallthrough)
+branch  5 taken 0 (throw)
+call    6 returned 1
+branch  7 taken 1 (fallthrough)
+branch  8 taken 0 (throw)
+        -:  139:
+        3:  140:    while (!stop_flag.load()) {
+call    0 returned 3
+branch  1 taken 2
+branch  2 taken 1 (fallthrough)
+        -:  141:        sockaddr_in client_addr;
+        2:  142:        socklen_t client_len = sizeof(client_addr);
+        2:  143:        int client_fd = accept(server_fd, (sockaddr*)&client_addr, &client_len);
+call    0 returned 2
+branch  1 taken 2 (fallthrough)
+branch  2 taken 0 (throw)
+        -:  144:
+       2*:  145:        if (client_fd < 0) {
+branch  0 taken 0 (fallthrough)
+branch  1 taken 2
+    #####:  146:            if (stop_flag.load()) break;
+call    0 never executed
+branch  1 never executed (fallthrough)
+branch  2 never executed
+    #####:  147:            perror("accept failed");
+call    0 never executed
+branch  1 never executed (fallthrough)
+branch  2 never executed (throw)
+    #####:  148:            continue;
+        -:  149:        }
+        -:  150:
+        2:  151:        std::thread(&PipelineServer::handleClient, this, client_fd).detach();
+call    0 returned 2
+branch  1 taken 2 (fallthrough)
+branch  2 taken 0 (throw)
+call    3 returned 2
+branch  4 taken 2 (fallthrough)
+branch  5 taken 0 (throw)
+call    6 returned 2
+call    7 never executed
+        -:  152:    }
+        -:  153:
+        1:  154:    close(server_fd);
+call    0 returned 1
+branch  1 taken 1 (fallthrough)
+branch  2 taken 0 (throw)
+        1:  155:    std::cout << "Server shut down gracefully.\n";
+call    0 returned 1
+branch  1 taken 1 (fallthrough)
+branch  2 taken 0 (throw)
+        -:  156:}

@@ -40,4 +40,6 @@ gcov-report:
 	gcov -b -c $(SRC)
 
 clean:
-	rm -f $(OBJ) $(TARGET) *.gcda *.gcno *.gcov callgrind.out.* gmon.out coverage.info
+	@echo "Cleaning up object and coverage files..."
+	@rm -vf *.o *.gcda *.gcno *.gcov $(TARGET) $(TARGET)_cov callgrind.out.* gmon.out coverage.info
+	@rm -rf coverage-report

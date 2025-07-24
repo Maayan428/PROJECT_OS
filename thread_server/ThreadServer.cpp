@@ -24,16 +24,30 @@ std::mutex client_counter_mutex;
 std::mutex cout_mutex; // lock for console output
 int client_counter = 0;
 
+/**
+ * @brief Signal handler that sets the global stop flag to true.
+ */
 void signal_handler(int signum) {
     stop_flag.store(true, std::memory_order_seq_cst);
 }
 
+/**
+ * @brief Constructor initializing the server with a specific port.
+ */
 ThreadServer::ThreadServer(int port) : port_(port) {}
 
+/**
+ * @brief Sends a message string to a connected client socket.
+ */
 void ThreadServer::sendMessage(int client_fd, const std::string& msg) {
     send(client_fd, msg.c_str(), msg.size(), 0);
 }
 
+/**
+ * @brief Receives a full line (until newline) from a client socket.
+ * 
+ * @return The trimmed input string without trailing spaces or control characters.
+ */
 std::string ThreadServer::receiveLine(int client_fd) {
     std::string input;
     char ch;
@@ -49,6 +63,12 @@ std::string ThreadServer::receiveLine(int client_fd) {
     return input;
 }
 
+/**
+ * @brief Interacts with the client to receive graph parameters, generate a random graph,
+ *        and return it. Supports exit and shutdown commands from the client.
+ * 
+ * @throws std::runtime_error if the client requests exit or shutdown.
+ */
 Graph ThreadServer::receiveGraph(int client_fd, int& num_vertices, int client_id) {
     while (true) {
         sendMessage(client_fd,
@@ -76,8 +96,8 @@ Graph ThreadServer::receiveGraph(int client_fd, int& num_vertices, int client_id
                 std::lock_guard<std::mutex> lock(cout_mutex);
                 std::cout << "[Client " << client_id << "] Requested server shutdown.\n";
             }
-            stop_flag.store(true);
-            wakeUpServer(port_);
+            stop_flag.store(true);  // Set shutdown flag
+            wakeUpServer(port_);    // Trigger accept() unblock
             throw std::runtime_error("Shutdown requested");
         }
 
@@ -100,7 +120,7 @@ Graph ThreadServer::receiveGraph(int client_fd, int& num_vertices, int client_id
                 int a = std::min(u, v);
                 int b = std::max(u, v);
                 if (edge_set.insert({a, b}).second) {
-                    g.addEdge(a, b);
+                    g.addEdge(a, b);  // Add only new unique edges
                 }
             }
         }
@@ -115,11 +135,15 @@ Graph ThreadServer::receiveGraph(int client_fd, int& num_vertices, int client_id
     }
 }
 
+/**
+ * @brief Handles an individual client connection in a separate thread.
+ *        Receives a graph, runs multiple algorithms, and sends results back.
+ */
 void ThreadServer::handleClient(int client_fd) {
     int client_id;
     {
         std::lock_guard<std::mutex> lock1(client_counter_mutex);
-        client_id = ++client_counter;
+        client_id = ++client_counter;  // Assign a unique ID to the client
     }
 
     {
@@ -166,8 +190,12 @@ void ThreadServer::handleClient(int client_fd) {
     }
 }
 
+/**
+ * @brief Starts the multithreaded server: binds to the given port,
+ *        accepts incoming connections, and dispatches each client to a new thread.
+ */
 void ThreadServer::start() {
-    signal(SIGINT, signal_handler);
+    signal(SIGINT, signal_handler);  // Register signal handler
 
     int server_fd = socket(AF_INET, SOCK_STREAM, 0);
     if (server_fd == -1) {
@@ -211,7 +239,7 @@ void ThreadServer::start() {
         }
 
         std::thread t(&ThreadServer::handleClient, this, client_fd);
-        t.detach();
+        t.detach();  // Run the client handler thread independently
     }
 
     close(server_fd);
@@ -222,6 +250,10 @@ void ThreadServer::start() {
     }
 }
 
+/**
+ * @brief Connects to the server on localhost and immediately closes the socket.
+ *        This is used to wake up the accept() call so the server can shutdown cleanly.
+ */
 void ThreadServer::wakeUpServer(int port) {
     int dummy = socket(AF_INET, SOCK_STREAM, 0);
     if (dummy < 0) return;
@@ -231,6 +263,6 @@ void ThreadServer::wakeUpServer(int port) {
     server_addr.sin_port = htons(port);
     server_addr.sin_addr.s_addr = inet_addr("127.0.0.1");
 
-    connect(dummy, (sockaddr*)&server_addr, sizeof(server_addr));
+    connect(dummy, (sockaddr*)&server_addr, sizeof(server_addr));  // Triggers accept() in main server
     close(dummy);
 }
